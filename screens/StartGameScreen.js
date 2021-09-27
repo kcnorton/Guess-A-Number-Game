@@ -1,20 +1,90 @@
-import React from 'react';
-import { View, StyleSheet, Text, TextInput, Button } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, Text, Button, TouchableWithoutFeedback, Keyboard, Alert } from 'react-native';
 import Card from '../components/Card';
+import Input from '../components/Input';
+import NumberContainer from '../components/NumberContainer';
+import Colors from '../constants/colors';
 
 const StartGameScreen = props => {
-    return (
-        <View style={styles.screen}>
-            <Text style={styles.title}>{props.title}</Text>
-            <Card style={styles.inputContainer}>
-                <Text>Select a Number</Text>
-                <TextInput />
-                <View style={styles.buttonContainer}>
-                    <Button title="Reset" onPress={() => {}} />
-                    <Button title="Confirm" onPress={() => {}} />
-                </View>
+
+    // validating user input for numbers only
+    // because keyboardType is not compatible with Android
+    const [enteredValue,setEnteredValue] = useState('');
+
+    // handling whether or not the user has confirmed a number to start a new game
+    const [confirmed, setConfirmed] = useState(false);
+
+    // if confirmed, save input number as the number with which to start the game
+    const [selectedNumber, setSelectedNumber] = useState('');
+
+    const numberInputHandler = inputText => {
+        // use a regular expression to replace anything that is Not a number
+        // with an empty string, globally, not just the first hit
+        setEnteredValue(inputText.replace(/[^0-9]/g, ''));
+    };
+
+    const resetInputHanlder = () => {
+        setEnteredValue('');
+        setConfirmed(false);
+    };
+
+    const confirmInputHanlder = () => {
+        const chosenNumber = parseInt(enteredValue);
+        if(isNaN(chosenNumber) || chosenNumber <= 0 || chosenNumber > 99) {
+            Alert.alert(
+                'Invalid number!', 
+                'Number has to be a number between 1 and 99', 
+                [{text: 'Okay', style: 'destructive', onPress: resetInputHanlder}]
+            );
+            // do not continue
+            return;
+        }
+        setConfirmed(true);
+        setSelectedNumber(chosenNumber);
+        // the ordering of these three state changes here is irrelevant
+        // these changes are queued to be executed the next time they are rendered
+        setEnteredValue('');
+        Keyboard.dismiss();
+    };
+
+    let confirmedOutput;
+
+    if(confirmed) {
+        confirmedOutput = (
+            <Card style={styles.summaryContainer}>
+                <Text>You selected</Text>
+                <NumberContainer>{selectedNumber}</NumberContainer>
+                <Button title='START GAME' onPress={() => props.onStartGame(selectedNumber)} />
             </Card>
-        </View>
+        );
+    }
+
+    // TouchableWithoutFeedback keyboard dismiss is compatible with iOS
+    // it is automatic on Android
+    return (
+        <TouchableWithoutFeedback onPress={() => {Keyboard.dismiss();}}>
+            <View style={styles.screen}>
+                <Text style={styles.title}>Start New Game</Text>
+                <Card style={styles.inputContainer}>
+                    <Text>Select a Number</Text>
+                    <Input 
+                        style={styles.input} 
+                        blurOnSubmit 
+                        autoCapitalize='none' 
+                        autoCorrect={false} 
+                        keyboardType='number-pad' 
+                        maxLength={2} 
+                        onChangeText={numberInputHandler}
+                        value={enteredValue}
+                    />
+                    <View style={styles.buttonContainer}>
+                        <View style={styles.button}><Button title="Reset" onPress={resetInputHanlder} color={Colors.accent} /></View>
+                        <View style={styles.button}><Button title="Confirm" onPress={confirmInputHanlder} color={Colors.primary} /></View>
+                    </View>
+                </Card>
+                {confirmedOutput}
+            </View>
+        </TouchableWithoutFeedback>
     );
 };
 
@@ -29,7 +99,8 @@ const styles = StyleSheet.create({
 
     title: {
         fontSize: 20,
-        marginVertical: 10
+        marginVertical: 10,
+        fontFamily: 'open-sans-bold'
     },
 
     inputContainer: {
@@ -42,6 +113,21 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         width: '100%',
         justifyContent: 'space-between',
+        alignItems: 'center',
         paddingHorizontal: 15
+    },
+
+    button: {
+        width: '40%'
+    },
+
+    input: {
+        width: 50,
+        textAlign: 'center'
+    },
+
+    summaryContainer: {
+        marginTop: 20,
+        alignItems: 'center'
     }
 });
