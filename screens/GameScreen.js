@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ScrollView, View, Text, FlatList, StyleSheet, Alert } from 'react-native';
+import { ScrollView, Dimensions, View, Text, FlatList, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'
 
 import NumberContainer from '../components/NumberContainer';
@@ -36,6 +36,9 @@ const GameScreen = props => {
     const [currentGuess, setCurrentGuess] = useState(initialGuess);
     // keeping a list of guesses
     const [pastGuesses, setPastGuesses] = useState([initialGuess.toString()]);
+    // const [availableDeviceWidth, setAvailableDeviceWidth] = useState(Dimensions.get('window').width);
+    const [availableDeviceHeight, setAvailableDeviceHeight] = useState(Dimensions.get('window').height);
+
 
     const currentLow = useRef(1);
     const currentHigh = useRef(100);
@@ -43,6 +46,19 @@ const GameScreen = props => {
     // similar to array destructuring
     // pulled out these constants from props
     const { userChoice, onGameOver } = props;
+
+    useEffect(() => {
+        const updateLayout = () => {
+            // setAvailableDeviceWidth(Dimensions.get('window').width);
+            setAvailableDeviceHeight(Dimensions.get('window').height);
+        };
+
+        Dimensions.addEventListener('change',updateLayout);
+
+        return () => {
+            Dimensions.removeEventListener('change', updateLayout);
+        };
+    });
 
     // executed after every render cycle if the dependencies have changed
     useEffect(() => {
@@ -67,6 +83,35 @@ const GameScreen = props => {
         // setRounds(currRounds => currRounds + 1);
         setPastGuesses(currPastGuesses => [nextNum.toString(), ...currPastGuesses])
     };
+
+    if(availableDeviceHeight < 500) {
+        return (
+            <View style={styles.screen}>
+                <TitleText>
+                    Opponent's Guess
+                </TitleText>
+                <View style={styles.controls}>
+                    <MainButton onPress={nextGuessHandler.bind(this, 'lower')}>
+                        <Ionicons name='md-remove' size={24} color='white' />
+                    </MainButton>
+                    <NumberContainer>
+                        {currentGuess}
+                    </NumberContainer>
+                    <MainButton onPress={nextGuessHandler.bind(this, 'higher')}>
+                        <Ionicons name='md-add' size={24} color='white' />
+                    </MainButton>
+                </View>
+                <View style={styles.listContainer}>
+                    <FlatList 
+                        keyExtractor={(item) => item} 
+                        data={pastGuesses} 
+                        renderItem={renderListItem.bind(this, pastGuesses.length)} 
+                        contentContainerStyle={styles.list}
+                    />
+                </View>
+            </View>
+        );
+    }
 
     return (
         <View style={styles.screen}>
@@ -111,13 +156,21 @@ const styles = StyleSheet.create({
     buttonContainer: {
         flexDirection: 'row',
         justifyContent: 'space-around',
-        marginTop: 20,
+        marginTop: Dimensions.get('window').height > 600 ? 20 : 5, // if height is greater than 600px then set to 20 otherwise 5
         width: 400,
         maxWidth: '90%'
     },
 
+    controls: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        width: '80%',
+        alignItems: 'center'
+    },  
+
     listContainer: {
-        width: '60%',
+        // width: '60%',
+        width: Dimensions.get('window').width > 350 ? '60%' : '80%',
         flex: 1 // ensures scrollview works on android
     },
 
